@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyrics Word Cloud</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 25px;
+            color: #4a4a4a;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            border-color: #764ba2;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #5d3885;
+            transform: translateY(-2px);
+        }
+
+        .result-box {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-box img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-top: 15px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🎵 Word Cloud Generator</h2>
+
+        <form method="POST">
+            <div class="input-group">
+                <label>Song Title</label>
+                <input type="text" name="song" placeholder="e.g. Bohemian Rhapsody" required>
+            </div>
+            
+            <div class="input-group">
+                <label>Artist Name</label>
+                <input type="text" name="artist" placeholder="e.g. Queen" required>
+            </div>
+
+            <button type="submit">✨ Generate Visualization</button>
+        </form>
+
+        {% if image %}
+            <div class="result-box">
+                <h3>Result</h3>
+                <img src="/static/wordcloud.png" alt="Lyrics Word Cloud">
+            </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>
