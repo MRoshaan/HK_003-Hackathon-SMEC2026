@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Giglet</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">Giglet</a>
+            <nav id="nav-auth">
+                <a href="index.html">Gig Board</a>
+                <a href="portfolio.html">Portfolio</a>
+                <a href="post_gig.html" class="btn btn-accent">Post Gig</a>
+                <a href="#" id="logout-btn" class="btn btn-outline btn-sm">Sign Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="padding: 4rem 1.5rem;">
+        <div id="dashboard-feedback" style="display: none; margin-bottom: 2rem;"></div>
+        
+        <div class="section-title">
+            <h2 id="dashboard-title">Your Active Gigs</h2>
+            <span id="user-role" class="status-badge status-Open">...</span>
+        </div>
+        
+        <div id="my-gigs-container" class="grid">
+            <p style="color: var(--muted);">Loading your gigs...</p>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/bids.js"></script>
+    <script>
+        let timers = {};
+
+        function startTimer(gigId, acceptedAt, durationStr) {
+            if (timers[gigId]) clearInterval(timers[gigId]);
+            
+            const durationMatch = durationStr.match(/(\d+)\s*(day|hour|minute|week)/i);
+            if (!durationMatch) return;
+            
+            const amount = parseInt(durationMatch[1]);
+            const unit = durationMatch[2].toLowerCase();
+            
+            let durationMs = amount * 60 * 1000;
+            if (unit.startsWith('hour')) durationMs *= 60;
+            if (unit.startsWith('day')) durationMs *= 60 * 24;
+            if (unit.startsWith('week')) durationMs *= 60 * 24 * 7;
+
+            const targetTime = new Date(acceptedAt).getTime() + durationMs;
+
+            function update() {
+                const now = new Date().getTime();
+                const diff = targetTime - now;
+                const el = document.getElementById(`timer-${gigId}`);
+                if (!el) return;
+
+                if (diff <= 0) {
+                    el.textContent = 'Deadline Passed';
+                    el.style.color = '#991B1B';
+                    clearInterval(timers[gigId]);
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                el.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                
+                if (diff < (1000 * 60 * 60 * 2)) { // Warning if less than 2 hours
+                    el.style.color = '#991B1B';
+                    el.style.fontWeight = 'bold';
+                } else if (diff < (1000 * 60 * 60 * 24)) { // Warning if less than 1 day
+                    el.style.color = '#B45309';
+                }
+            }
+
+            timers[gigId] = setInterval(update, 1000);
+            update();
+        }
+
+        async function fetchMyGigs() {
+            const meRes = await fetch('/api/auth/me');
+            const meData = await meRes.json();
+            let currentUser = null;
+            if (meData.user) {
+                currentUser = meData.user;
+                const roleBadge = document.getElementById('user-role');
+                roleBadge.textContent = meData.user.role;
+                roleBadge.className = `status-badge status-${meData.user.role === 'Student' ? 'Open' : 'In-Progress'}`;
+                document.getElementById('dashboard-title').textContent = meData.user.role === 'Student' ? 'Gigs You Are Working On' : 'Your Posted Gigs';
+            }
+
+            const res = await fetch('/api/my-gigs');
+            const gigs = await res.json();
+            const container = document.getElementById('my-gigs-container');
+            
+            if (gigs.length === 0) {
+                container.innerHTML = `<p style="color: var(--muted);">You don't have any active gigs yet.</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            for (const gig of gigs) {
+                // For students, only show assigned gigs or gigs they bid on (but current API filters by created_by OR assigned_to)
+                const isOwner = currentUser && gig.created_by === currentUser.id;
+                
+                const gigDiv = document.createElement('div');
+                gigDiv.className = 'card gig-card';
+                
+                let footerContent = '';
+                if (gig.status === 'In Progress' && gig.accepted_at) {
+                    // Fetch the bid duration for the timer
+                    const gigRes = await fetch(`/api/gigs/${gig.id}`);
+                    const fullGig = await gigRes.json();
+                    if (fullGig.bid_duration) {
+                    footerContent = `
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: var(--input); border-radius: var(--radius); border-left: 4px solid var(--accent);">
+                            <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Deadline Countdown</label>
+                            <div id="timer-${gig.id}" style="font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums;">--:--:--</div>
+                            <p style="font-size: 0.75rem; margin-top: 0.25rem; color: var(--muted);">Committed Time: ${fullGig.bid_duration}</p>
+                        </div>
+                    `;
+                    setTimeout(() => startTimer(gig.id, gig.accepted_at, fullGig.bid_duration), 0);
+                }
+                }
+
+                gigDiv.innerHTML = `
+                    <div class="header">
+                        <span class="status-badge status-${gig.status.replace(' ', '-')}">${gig.status}</span>
+                        <span class="budget">PKR ${gig.budget}</span>
+                    </div>
+                    <h3>${gig.title}</h3>
+                    
+                    ${footerContent}
+
+                    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                        <a href="gig_details.html?id=${gig.id}" class="btn btn-accent btn-sm" style="width: 100%;">View Details</a>
+                        ${isOwner ? `<a href="edit_gig.html?id=${gig.id}" class="btn btn-outline btn-sm" style="width: 100%;">Edit Gig</a>` : ''}
+                    </div>
+
+                    ${isOwner && gig.status === 'Open' ? `
+                        <div id="bids-${gig.id}" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                            <h4 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Bids</h4>
+                            <div class="bids-list" style="font-size: 0.875rem; color: var(--muted);">Loading bids...</div>
+                        </div>
+                    ` : ''}
+
+                    ${isOwner && gig.status === 'In Progress' ? `
+                        <button class="btn btn-accent btn-sm" style="width: 100%; margin-top:1rem;" onclick="markComplete(${gig.id}, this)">Mark Completed</button>
+                    ` : ''}
+                `;
+                container.appendChild(gigDiv);
+
+                if (isOwner && gig.status === 'Open') {
+                    fetchBids(gig.id);
+                }
+            }
+        }
+
+        async function fetchBids(gigId) {
+            try {
+                const res = await fetch(`/api/gigs/${gigId}/bids`);
+                const bids = await res.json();
+                const list = document.querySelector(`#bids-${gigId} .bids-list`);
+                
+                if (!list) return;
+
+                if (bids.length === 0) {
+                    list.innerHTML = 'No bids yet.';
+                    return;
+                }
+
+                list.innerHTML = bids.map(bid => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; background: var(--input); padding: 0.5rem; border-radius: var(--radius);">
+                        <span>@${bid.username} • <strong>PKR ${bid.amount}</strong></span>
+                        <button class="btn btn-accent btn-sm" onclick="acceptBid(${bid.id}, this)">Accept</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function acceptBid(bidId, btn) {
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            const feedback = document.getElementById('dashboard-feedback');
+            
+            try {
+                const res = await fetch(`/api/bids/${bidId}/accept`, { method: 'POST' });
+                if (res.ok) {
+                    feedback.textContent = 'Bid accepted! Gig is now in progress.';
+                    feedback.className = 'feedback-message feedback-success';
+                    feedback.style.display = 'block';
+                    fetchMyGigs();
+                    setTimeout(() => feedback.style.display = 'none', 3000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Accept';
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Accept';
+            }
+        }
+
+        async function markComplete(gigId, btn) {
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            const feedback = document.getElementById('dashboard-feedback');
+            
+            try {
+                const res = await fetch(`/api/gigs/${gigId}/complete`, { method: 'POST' });
+                if (res.ok) {
+                    feedback.textContent = 'Gig marked as completed!';
+                    feedback.className = 'feedback-message feedback-success';
+                    feedback.style.display = 'block';
+                    fetchMyGigs();
+                    setTimeout(() => feedback.style.display = 'none', 3000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Mark Completed';
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Mark Completed';
+            }
+        }
+
+        fetchMyGigs();
+    </script>
+</body>
+</html>

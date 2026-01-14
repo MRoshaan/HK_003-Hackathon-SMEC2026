@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - Giglet</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background: var(--card);">
+    <div class="container" style="max-width: 480px; padding-top: 5rem;">
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+            <a href="index.html" class="logo" style="justify-content: center; font-size: 1.75rem; margin-bottom: 1rem;">Giglet</a>
+            <h2 style="font-weight: 800; letter-spacing: -0.02em;">Create your account</h2>
+            <p style="color: var(--muted); margin-top: 0.5rem;">Start your journey with Giglet today.</p>
+        </div>
+
+        <form id="register-form">
+            <div id="register-feedback" style="display: none; margin-bottom: 1.5rem;"></div>
+            <div class="form-group">
+                <label>I want to...</label>
+                <div class="role-grid">
+                    <div class="role-card" onclick="selectRole('Student', this)">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎓</div>
+                        <h4>Be a Student</h4>
+                        <p>Complete tasks and earn money.</p>
+                        <input type="radio" name="role" value="Student">
+                    </div>
+                    <div class="role-card" onclick="selectRole('Employer', this)">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">💼</div>
+                        <h4>Be an Employer</h4>
+                        <p>Post gigs and find help quickly.</p>
+                        <input type="radio" name="role" value="Employer">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="johndoe" required>
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="john@example.com" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-accent" style="width: 100%; height: 3rem;">Create Account</button>
+        </form>
+        
+        <p style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem; color: var(--muted);">
+            Already have an account? <a href="login.html" style="color: var(--accent); font-weight: 600; text-decoration: none;">Sign in</a>
+        </p>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        function selectRole(role, element) {
+            document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+            element.querySelector('input').checked = true;
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const feedback = document.getElementById('register-feedback');
+            const role = formData.get('role');
+            const username = formData.get('username');
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            if (!role) {
+                feedback.textContent = 'Please select your role.';
+                feedback.className = 'feedback-message feedback-error';
+                feedback.style.display = 'block';
+                return;
+            }
+
+            Auth.register(username, email, password, role, feedback);
+        });
+    </script>
+</body>
+</html>

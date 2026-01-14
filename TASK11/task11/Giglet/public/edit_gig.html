@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Gig - Giglet</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">Giglet</a>
+            <nav id="nav-auth">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="portfolio.html">Portfolio</a>
+                <a href="#" id="logout-btn" class="btn btn-outline btn-sm">Sign Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="padding: 4rem 1.5rem; max-width: 600px;">
+        <div class="section-title">
+            <h2>Edit Gig</h2>
+        </div>
+
+        <form id="edit-gig-form" class="card">
+            <div id="edit-feedback" style="display: none; margin-bottom: 1.5rem;"></div>
+            <div class="form-group">
+                <label>Gig Title</label>
+                <input type="text" name="title" id="edit-title" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" id="edit-description" rows="5" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Budget (PKR)</label>
+                <input type="number" name="budget" id="edit-budget" required>
+            </div>
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" name="deadline" id="edit-deadline" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-accent" style="flex: 1;">Save Changes</button>
+                <a href="dashboard.html" class="btn btn-outline" style="flex: 1;">Cancel</a>
+            </div>
+        </form>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const gigId = urlParams.get('id');
+            const form = document.getElementById('edit-gig-form');
+            const feedback = document.getElementById('edit-feedback');
+
+            if (!gigId) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/gigs/${gigId}`);
+                if (!res.ok) throw new Error('Gig not found');
+                const gig = await res.json();
+
+                document.getElementById('edit-title').value = gig.title;
+                document.getElementById('edit-description').value = gig.description;
+                document.getElementById('edit-budget').value = gig.budget;
+                document.getElementById('edit-deadline').value = gig.deadline;
+            } catch (err) {
+                window.location.href = 'dashboard.html';
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    const res = await fetch(`/api/gigs/${gigId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (res.ok) {
+                        feedback.textContent = 'Gig updated successfully!';
+                        feedback.className = 'feedback-message feedback-success';
+                        feedback.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = `gig_details.html?id=${gigId}`;
+                        }, 1500);
+                    } else {
+                        const err = await res.json();
+                        feedback.textContent = err.error || 'Failed to update gig';
+                        feedback.className = 'feedback-message feedback-error';
+                        feedback.style.display = 'block';
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

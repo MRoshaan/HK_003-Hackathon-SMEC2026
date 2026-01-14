@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gig Details - Giglet</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">Giglet</a>
+            <nav id="nav-anon" style="display: none;">
+                <a href="login.html">Sign In</a>
+                <a href="register.html" class="btn btn-accent">Get Started</a>
+            </nav>
+            <nav id="nav-auth" style="display: none;">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="portfolio.html">Portfolio</a>
+                <a href="post_gig.html" class="btn btn-accent">Post Gig</a>
+                <a href="#" id="logout-btn" class="btn btn-outline btn-sm">Sign Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="padding: 4rem 1.5rem; max-width: 800px;">
+        <div style="margin-bottom: 2rem;">
+            <a href="index.html" class="btn btn-outline btn-sm">← Back to Board</a>
+        </div>
+
+        <div id="gig-details-container">
+            <p>Loading gig details...</p>
+        </div>
+
+        <div id="bid-section" class="card" style="margin-top: 2rem; display: none;">
+            <h3 style="margin-bottom: 1.5rem;">Place your bid</h3>
+            <form id="bid-form">
+                <div class="form-group">
+                    <label>Bid Amount (PKR)</label>
+                    <input type="number" name="amount" id="bid-amount" placeholder="e.g. 50" required>
+                </div>
+                <div class="form-group">
+                    <label>Proposed Completion Time</label>
+                    <input type="text" name="completion_time" id="completion-time" placeholder="e.g. 3 days" required>
+                </div>
+                <button type="submit" class="btn btn-accent" style="width: 100%;">Submit Bid</button>
+            </form>
+            <div id="bid-feedback" style="margin-top: 1rem; text-align: center; display: none;"></div>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const gigId = urlParams.get('id');
+            const container = document.getElementById('gig-details-container');
+            const bidSection = document.getElementById('bid-section');
+
+            if (!gigId) {
+                container.innerHTML = '<p>No gig ID provided.</p>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/gigs/${gigId}`);
+                if (!res.ok) throw new Error('Gig not found');
+                const gig = await res.json();
+
+                let contactSection = '';
+                if (gig.creator_email) {
+                    contactSection = `
+                        <div style="margin-top: 2rem; padding: 1.5rem; background: var(--input); border-radius: var(--radius); border: 1px solid var(--accent);">
+                            <h3 style="margin-bottom: 1rem; color: var(--accent);">Contact Gig Owner</h3>
+                            <div style="display: grid; gap: 1rem;">
+                                <div>
+                                    <label style="font-size: 0.75rem; color: var(--muted);">Owner Name</label>
+                                    <p style="font-weight: 600; font-size: 1.125rem;">${gig.creator_name}</p>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: var(--muted);">Email Address</label>
+                                    <p style="font-weight: 600; font-size: 1.125rem;">
+                                        <a href="mailto:${gig.creator_email}" style="color: var(--primary); text-decoration: underline;">${gig.creator_email}</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                let countdownHtml = '';
+                if (gig.status === 'In Progress' && gig.accepted_at && gig.bid_duration) {
+                     countdownHtml = `
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--input); border-radius: var(--radius);">
+                            <label style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Deadline Timer</label>
+                            <div id="detail-timer" style="font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums;">--:--:--</div>
+                        </div>
+                     `;
+                     // Logic handled below
+                }
+
+                container.innerHTML = `
+                    <div class="card">
+                        <div class="header">
+                            <span class="status-badge status-${gig.status.replace(' ', '-')}">${gig.status}</span>
+                            <span class="budget">PKR ${gig.budget}</span>
+                        </div>
+                        <h1 style="font-size: 2rem; margin-bottom: 1rem; color: var(--primary);">${gig.title}</h1>
+                        <p style="font-size: 1.125rem; color: var(--card-foreground); margin-bottom: 2rem; white-space: pre-wrap;">${gig.description}</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                            <div>
+                                <label style="margin-bottom: 0.25rem;">Posted By</label>
+                                <p style="font-weight: 600;">@${gig.creator_name} (${gig.creator_role})</p>
+                            </div>
+                            <div>
+                                <label style="margin-bottom: 0.25rem;">Deadline</label>
+                                <p style="font-weight: 600;">${gig.deadline}</p>
+                            </div>
+                        </div>
+                        ${countdownHtml}
+                    </div>
+                    ${contactSection}
+                `;
+
+                if (document.getElementById('detail-timer')) {
+                    startDetailTimer(gigId, gig.accepted_at, gig.bid_duration);
+                }
+
+                // Show bid section if gig is open and user is a student
+                const authRes = await fetch('/api/auth/me');
+                const authData = await authRes.json();
+                
+                if (authData.user && authData.user.id === gig.created_by) {
+                    const editBtn = document.createElement('a');
+                    editBtn.href = `edit_gig.html?id=${gig.id}`;
+                    editBtn.className = 'btn btn-outline btn-sm';
+                    editBtn.style.marginLeft = '1rem';
+                    editBtn.textContent = 'Edit Gig';
+                    document.querySelector('.container div').appendChild(editBtn);
+                }
+
+                if (gig.status === 'Open' && authData.user && authData.user.role === 'Student') {
+                    bidSection.style.display = 'block';
+                }
+
+            } catch (err) {
+                container.innerHTML = `<p>${err.message}</p>`;
+            }
+
+            function startDetailTimer(gigId, acceptedAt, durationStr) {
+                const durationMatch = durationStr.match(/(\d+)\s*(day|hour|minute|week)/i);
+                if (!durationMatch) return;
+                
+                const amount = parseInt(durationMatch[1]);
+                const unit = durationMatch[2].toLowerCase();
+                
+                let durationMs = amount * 60 * 1000;
+                if (unit.startsWith('hour')) durationMs *= 60;
+                if (unit.startsWith('day')) durationMs *= 60 * 24;
+                if (unit.startsWith('week')) durationMs *= 60 * 24 * 7;
+
+                const targetTime = new Date(acceptedAt).getTime() + durationMs;
+
+                function update() {
+                    const now = new Date().getTime();
+                    const diff = targetTime - now;
+                    const el = document.getElementById('detail-timer');
+                    if (!el) return;
+
+                    if (diff <= 0) {
+                        el.textContent = 'Deadline Passed';
+                        el.style.color = '#991B1B';
+                        return;
+                    }
+
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    el.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                    if (diff < (1000 * 60 * 60 * 2)) el.style.color = '#991B1B';
+                    else if (diff < (1000 * 60 * 60 * 24)) el.style.color = '#B45309';
+                }
+
+                setInterval(update, 1000);
+                update();
+            }
+
+            const bidForm = document.getElementById('bid-form');
+            bidForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const amount = document.getElementById('bid-amount').value;
+                const completion_time = document.getElementById('completion-time').value;
+                const feedback = document.getElementById('bid-feedback');
+
+                try {
+                    const res = await fetch(`/api/gigs/${gigId}/bids`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount, completion_time })
+                    });
+
+                    if (res.ok) {
+                        feedback.innerHTML = '<p style="color: #166534; font-weight: 600;">Bid submitted successfully!</p>';
+                        feedback.style.display = 'block';
+                        bidForm.reset();
+                    } else {
+                        const data = await res.json();
+                        feedback.innerHTML = `<p style="color: #991B1B;">${data.error || 'Failed to submit bid'}</p>`;
+                        feedback.style.display = 'block';
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

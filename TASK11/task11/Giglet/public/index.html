@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giglet - The Student Marketplace</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">Giglet</a>
+            <nav id="nav-anon" style="display: none;">
+                <a href="login.html">Sign In</a>
+                <a href="register.html" class="btn btn-accent">Get Started</a>
+            </nav>
+            <nav id="nav-auth" style="display: none;">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="portfolio.html">Portfolio</a>
+                <a href="post_gig.html" class="btn btn-accent">Post Gig</a>
+                <a href="#" id="logout-btn" class="btn btn-outline btn-sm">Sign Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Find local student gigs.</h1>
+            <p>The marketplace for short-term tasks and peer-to-peer services. Built for students, by students.</p>
+        </div>
+    </section>
+
+    <main class="container" style="padding: 4rem 1.5rem;">
+        <div class="section-title">
+            <h2>Available Gigs</h2>
+        </div>
+        <div class="grid" id="gigs-container">
+            <p style="color: var(--muted);">Finding the best gigs for you...</p>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/gigs.js"></script>
+    <script src="js/bids.js"></script>
+</body>
+</html>

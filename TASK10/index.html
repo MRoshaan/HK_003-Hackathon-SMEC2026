@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShareCycle - Rent & Barter</title>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; color: #333; }
+        .navbar { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 24px; font-weight: bold; color: #2e7d32; }
+        .nav-btn { background: none; border: none; cursor: pointer; font-size: 16px; margin-left: 20px; color: #555; }
+        .nav-btn.active { color: #2e7d32; font-weight: 600; }
+        
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: 0.2s; position: relative; }
+        .card:hover { transform: translateY(-3px); }
+        .card-img { height: 180px; background: #ddd; background-size: cover; background-position: center; }
+        .card-body { padding: 15px; }
+        .card-title { font-size: 18px; margin: 0 0 5px 0; font-weight: 600; }
+        .card-price { color: #2e7d32; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: block; }
+        .card-desc { font-size: 13px; color: #666; margin-bottom: 15px; line-height: 1.4; }
+        
+        .rating { color: #f1c40f; font-size: 14px; margin-bottom: 10px; }
+        
+        .btn { background: #2e7d32; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 14px; }
+        .btn:hover { background: #256629; }
+        .btn-del { background: #e74c3c; margin-top: 5px; }
+        
+        .match-box { background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #c8e6c9; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 400px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 5px; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">ShareCycle</div>
+        <div>
+            <button class="nav-btn active" onclick="showSection('market')">Marketplace</button>
+            <button class="nav-btn" onclick="showSection('matches')">✨ Smart Matches</button>
+            <button class="nav-btn" onclick="openModal()">+ List Item</button>
+        </div>
+    </nav>
+
+    <div class="container" id="marketSection">
+        <h2 style="margin-bottom: 20px;">Explore Items</h2>
+        <div class="grid" id="itemsGrid"></div>
+    </div>
+
+    <div class="container hidden" id="matchSection">
+        <div class="match-box">
+            <h3>🤖 Smart Swap Suggestions</h3>
+            <p>Based on your interest in "Photography", here are items you might like to swap for.</p>
+        </div>
+        <div class="grid" id="matchGrid"></div>
+    </div>
+
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0">List Your Item</h3>
+            <div class="form-group">
+                <input type="text" id="title" placeholder="Item Name (e.g. DSLR Camera)">
+            </div>
+            <div class="form-group">
+                <select id="type">
+                    <option value="Rent">For Rent</option>
+                    <option value="Swap">For Barter/Swap</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="text" id="price" placeholder="Price / Value ($)">
+            </div>
+            <div class="form-group">
+                <textarea id="desc" rows="3" placeholder="Description..."></textarea>
+            </div>
+            <div class="form-group">
+                <input type="text" id="imgUrl" placeholder="Image URL (optional)">
+            </div>
+            <button class="btn" onclick="addItem()">Post Item</button>
+            <button class="btn btn-del" onclick="closeModal()" style="background:#ccc; color:#333; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+<script>
+    const defaultItems = [
+        { id: 1, title: "Canon DSLR Kit", type: "Rent", price: "50/day", desc: "Professional camera with 2 lenses. Perfect for weekend shoots.", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500", rating: 5, owner: "Alice" },
+        { id: 2, title: "Mountain Bike", type: "Swap", price: "Value $300", desc: "Hardly used. Looking to swap for a good guitar or kayak.", img: "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=500", rating: 4, owner: "Bob" },
+        { id: 3, title: "Drill Set", type: "Rent", price: "15/day", desc: "Cordless drill with all bits included.", img: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=500", rating: 5, owner: "Charlie" },
+        { id: 4, title: "Camping Tent", type: "Rent", price: "20/weekend", desc: "4-person waterproof tent.", img: "https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=500", rating: 3, owner: "Dave" }
+    ];
+
+    let items = JSON.parse(localStorage.getItem('shareCycle_items')) || defaultItems;
+
+    function renderItems(filter = null) {
+        const grid = document.getElementById(filter === 'match' ? 'matchGrid' : 'itemsGrid');
+        grid.innerHTML = '';
+        
+        let data = items;
+        if (filter === 'match') {
+            data = items.filter(i => i.type === 'Swap' || i.title.includes('Camera'));
+        }
+
+        data.forEach(item => {
+            const stars = '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating);
+            
+            grid.innerHTML += `
+                <div class="card">
+                    <div class="card-img" style="background-image: url('${item.img || 'https://via.placeholder.com/300'}')"></div>
+                    <div class="card-body">
+                        <span class="rating">${stars}</span>
+                        <h3 class="card-title">${item.title}</h3>
+                        <span class="card-price">${item.type} • ${item.price}</span>
+                        <p class="card-desc">${item.desc}</p>
+                        <button class="btn" onclick="contactOwner('${item.owner}')">Request ${item.type}</button>
+                        <button class="btn btn-del" onclick="deleteItem(${item.id})" style="width:auto; float:right; padding:5px 10px; margin-top:0;">×</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function addItem() {
+        const title = document.getElementById('title').value;
+        const type = document.getElementById('type').value;
+        const price = document.getElementById('price').value;
+        const desc = document.getElementById('desc').value;
+        const img = document.getElementById('imgUrl').value;
+
+        if (!title || !price) return alert("Title and Price are required");
+
+        const newItem = {
+            id: Date.now(),
+            title,
+            type,
+            price,
+            desc,
+            img,
+            rating: 0,
+            owner: "You"
+        };
+
+        items.unshift(newItem);
+        localStorage.setItem('shareCycle_items', JSON.stringify(items));
+        renderItems();
+        closeModal();
+    }
+
+    function deleteItem(id) {
+        if (confirm("Delete this listing?")) {
+            items = items.filter(i => i.id !== id);
+            localStorage.setItem('shareCycle_items', JSON.stringify(items));
+            renderItems();
+            renderItems('match');
+        }
+    }
+
+    function showSection(section) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        if (section === 'market') {
+            document.getElementById('marketSection').classList.remove('hidden');
+            document.getElementById('matchSection').classList.add('hidden');
+            renderItems();
+        } else {
+            document.getElementById('marketSection').classList.add('hidden');
+            document.getElementById('matchSection').classList.remove('hidden');
+            renderItems('match');
+        }
+    }
+
+    function openModal() { document.getElementById('itemModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('itemModal').style.display = 'none'; }
+    function contactOwner(owner) { alert(`Contact request sent to ${owner}!`); }
+
+    renderItems();
+
+</script>
+
+</body>
+</html>

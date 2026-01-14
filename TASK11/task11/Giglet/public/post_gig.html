@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Post a Gig - Giglet</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">Giglet</a>
+            <nav>
+                <a href="dashboard.html">Dashboard</a>
+                <a href="portfolio.html">Portfolio</a>
+                <a href="#" id="logout-btn" class="btn btn-outline btn-sm">Sign Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="max-width: 600px; padding-top: 5rem;">
+        <div class="card" style="box-shadow: var(--shadow-md);">
+            <h2 style="font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem;">Post a new gig</h2>
+            <p style="color: var(--muted); margin-bottom: 2rem;">Describe what you need and set your budget.</p>
+            
+            <form id="post-gig-form">
+                <div class="form-group">
+                    <label>Gig Title</label>
+                    <input type="text" name="title" placeholder="e.g. Help moving furniture" required>
+                </div>
+                <div class="form-group">
+                    <label>Detailed Description</label>
+                    <textarea name="description" rows="5" placeholder="Provide more context about the task..." required></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Budget (PKR)</label>
+                        <input type="number" name="budget" placeholder="50" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Deadline</label>
+                        <input type="date" name="deadline" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-accent" style="width: 100%; height: 3.5rem; margin-top: 1rem; font-size: 1rem;">Launch Gig</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/gigs.js"></script>
+</body>
+</html>
