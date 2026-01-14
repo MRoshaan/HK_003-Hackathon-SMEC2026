@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialConnect</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
+        .navbar { background: white; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .logo { color: #1877f2; font-size: 24px; font-weight: bold; cursor: pointer; text-decoration: none; }
+        .nav-links button { background: none; border: none; font-size: 16px; cursor: pointer; padding: 10px; color: #65676b; font-weight: 600; }
+        .nav-links button.active { color: #1877f2; border-bottom: 3px solid #1877f2; }
+        
+        .container { max-width: 600px; margin: 20px auto; padding: 0 10px; }
+        
+        .create-post { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .create-post textarea { width: 100%; border: none; resize: none; font-family: inherit; font-size: 16px; outline: none; margin-bottom: 10px; }
+        .post-btn { background: #1877f2; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; float: right; }
+        .clearfix::after { content: ""; display: table; clear: both; }
+
+        .post { background: white; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; padding: 15px; }
+        .post-header { display: flex; align-items: center; margin-bottom: 10px; }
+        .avatar { width: 40px; height: 40px; background: #ddd; border-radius: 50%; margin-right: 10px; cursor: pointer; background-size: cover; }
+        .user-info h4 { margin: 0; font-size: 15px; cursor: pointer; }
+        .user-info span { font-size: 12px; color: #65676b; }
+        .post-content { font-size: 15px; margin-bottom: 15px; line-height: 1.4; }
+        
+        .post-actions { border-top: 1px solid #ced0d4; border-bottom: 1px solid #ced0d4; padding: 5px 0; display: flex; justify-content: space-around; }
+        .action-btn { background: none; border: none; color: #65676b; font-weight: 600; cursor: pointer; padding: 5px; width: 100%; border-radius: 4px; }
+        .action-btn:hover { background-color: #f0f2f5; }
+        .action-btn.liked { color: #1877f2; }
+
+        .comments-section { padding-top: 10px; }
+        .comment { display: flex; margin-bottom: 10px; }
+        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: #ddd; margin-right: 8px; background-size: cover; }
+        .comment-bubble { background: #f0f2f5; padding: 8px 12px; border-radius: 18px; }
+        .comment-author { font-weight: bold; font-size: 13px; display: block; }
+        .comment-text { font-size: 14px; }
+        .comment-input { width: 100%; border: none; background: #f0f2f5; padding: 8px 12px; border-radius: 20px; outline: none; }
+
+        .profile-header { background: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .profile-pic { width: 100px; height: 100px; border-radius: 50%; background: #ccc; margin: 0 auto 10px; background-size: cover; }
+        .stats { display: flex; justify-content: center; gap: 20px; margin: 15px 0; color: #65676b; }
+        .follow-btn { background: #e4e6eb; color: black; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .follow-btn.following { background: #1877f2; color: white; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="#" class="logo" onclick="goHome()">SocialConnect</a>
+        <div class="nav-links">
+            <button id="navHome" class="active" onclick="goHome()">Home</button>
+            <button id="navProfile" onclick="goProfile(currentUser.id)">My Profile</button>
+        </div>
+    </nav>
+
+    <div class="container" id="mainContainer">
+    </div>
+
+<script>
+    const defaultData = {
+        users: [
+            { id: 1, name: "Alex Chen", handle: "@alex", followers: [], following: [2], avatar: "https://i.pravatar.cc/150?img=11" },
+            { id: 2, name: "Sarah Jones", handle: "@sarah", followers: [1], following: [], avatar: "https://i.pravatar.cc/150?img=5" },
+            { id: 3, name: "Mike Ross", handle: "@mike", followers: [], following: [], avatar: "https://i.pravatar.cc/150?img=3" }
+        ],
+        posts: [
+            { id: 101, userId: 2, content: "Just finished my first marathon! 🏃‍♀️ #tired #happy", likes: [1], comments: [{userId: 1, text: "Congrats Sarah! That is amazing!"}], timestamp: Date.now() - 3600000 },
+            { id: 102, userId: 1, content: "Does anyone know a good React tutorial?", likes: [], comments: [], timestamp: Date.now() - 7200000 }
+        ],
+        currentUser: 1
+    };
+
+    let appData = JSON.parse(localStorage.getItem('socialApp_v1')) || defaultData;
+    let currentUser = appData.users.find(u => u.id === appData.currentUser);
+
+    function saveData() {
+        localStorage.setItem('socialApp_v1', JSON.stringify(appData));
+    }
+
+    function goHome() {
+        document.getElementById('navHome').classList.add('active');
+        document.getElementById('navProfile').classList.remove('active');
+        renderFeed();
+    }
+
+    function goProfile(userId) {
+        document.getElementById('navHome').classList.remove('active');
+        if(userId === currentUser.id) document.getElementById('navProfile').classList.add('active');
+        renderProfile(userId);
+    }
+
+    function renderFeed() {
+        const container = document.getElementById('mainContainer');
+        let html = `
+            <div class="create-post clearfix">
+                <textarea id="newPostText" rows="3" placeholder="What's on your mind, ${currentUser.name.split(' ')[0]}?"></textarea>
+                <button class="post-btn" onclick="createPost()">Post</button>
+            </div>
+        `;
+
+        const sortedPosts = [...appData.posts].sort((a, b) => b.timestamp - a.timestamp);
+
+        sortedPosts.forEach(post => {
+            html += getPostHTML(post);
+        });
+
+        container.innerHTML = html;
+    }
+
+    function renderProfile(userId) {
+        const user = appData.users.find(u => u.id === userId);
+        const isMe = user.id === currentUser.id;
+        const isFollowing = user.followers.includes(currentUser.id);
+
+        const container = document.getElementById('mainContainer');
+        let html = `
+            <div class="profile-header">
+                <div class="profile-pic" style="background-image: url('${user.avatar}')"></div>
+                <h2>${user.name}</h2>
+                <p>${user.handle}</p>
+                <div class="stats">
+                    <span><strong>${user.followers.length}</strong> Followers</span>
+                    <span><strong>${user.following.length}</strong> Following</span>
+                </div>
+                ${!isMe ? `<button class="follow-btn ${isFollowing ? 'following' : ''}" onclick="toggleFollow(${user.id})">
+                    ${isFollowing ? 'Following' : 'Follow'}
+                </button>` : ''}
+            </div>
+            <h3>Posts</h3>
+        `;
+
+        const userPosts = appData.posts.filter(p => p.userId === userId).sort((a, b) => b.timestamp - a.timestamp);
+        userPosts.forEach(post => {
+            html += getPostHTML(post);
+        });
+
+        container.innerHTML = html;
+    }
+
+    function getPostHTML(post) {
+        const author = appData.users.find(u => u.id === post.userId);
+        const isLiked = post.likes.includes(currentUser.id);
+        
+        let commentsHTML = '';
+        post.comments.forEach(c => {
+            const cAuthor = appData.users.find(u => u.id === c.userId);
+            commentsHTML += `
+                <div class="comment">
+                    <div class="comment-avatar" style="background-image: url('${cAuthor.avatar}')"></div>
+                    <div class="comment-bubble">
+                        <span class="comment-author">${cAuthor.name}</span>
+                        <span class="comment-text">${c.text}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        return `
+            <div class="post">
+                <div class="post-header">
+                    <div class="avatar" style="background-image: url('${author.avatar}')" onclick="goProfile(${author.id})"></div>
+                    <div class="user-info" onclick="goProfile(${author.id})">
+                        <h4>${author.name}</h4>
+                        <span>${new Date(post.timestamp).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <div class="post-content">${post.content}</div>
+                <div class="post-actions">
+                    <button class="action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+                        ${isLiked ? '❤️ Liked' : 'Like'} (${post.likes.length})
+                    </button>
+                    <button class="action-btn">Comment</button>
+                </div>
+                <div class="comments-section">
+                    ${commentsHTML}
+                    <input type="text" class="comment-input" placeholder="Write a comment..." onkeydown="handleComment(event, ${post.id})">
+                </div>
+            </div>
+        `;
+    }
+
+    function createPost() {
+        const text = document.getElementById('newPostText').value;
+        if (!text.trim()) return;
+
+        const newPost = {
+            id: Date.now(),
+            userId: currentUser.id,
+            content: text,
+            likes: [],
+            comments: [],
+            timestamp: Date.now()
+        };
+
+        appData.posts.unshift(newPost);
+        saveData();
+        renderFeed();
+    }
+
+    function toggleLike(postId) {
+        const post = appData.posts.find(p => p.id === postId);
+        const index = post.likes.indexOf(currentUser.id);
+        
+        if (index === -1) {
+            post.likes.push(currentUser.id);
+        } else {
+            post.likes.splice(index, 1);
+        }
+        saveData();
+        
+        // Re-render current view to show update
+        if(document.getElementById('navHome').classList.contains('active')) renderFeed();
+        else {
+             // Find whose profile we are on by checking the rendered HTML name
+             // A bit hacky but keeps it simple. Better to store "currentView" state.
+             // For this task, simply re-rendering the profile of the post author works 80% of time
+             // but let's just reload the whole feed if in feed, or profile if in profile.
+             const mainH2 = document.querySelector('.profile-header h2');
+             if(mainH2) {
+                 const viewingUser = appData.users.find(u => u.name === mainH2.innerText);
+                 renderProfile(viewingUser.id);
+             } else {
+                 renderFeed();
+             }
+        }
+    }
+
+    function handleComment(event, postId) {
+        if (event.key === 'Enter') {
+            const text = event.target.value;
+            if (!text.trim()) return;
+
+            const post = appData.posts.find(p => p.id === postId);
+            post.comments.push({
+                userId: currentUser.id,
+                text: text
+            });
+            saveData();
+            
+            // Simple refresh logic
+            const mainH2 = document.querySelector('.profile-header h2');
+            if(mainH2) {
+                const viewingUser = appData.users.find(u => u.name === mainH2.innerText);
+                renderProfile(viewingUser.id);
+            } else {
+                renderFeed();
+            }
+        }
+    }
+
+    function toggleFollow(targetId) {
+        const targetUser = appData.users.find(u => u.id === targetId);
+        const me = appData.users.find(u => u.id === currentUser.id);
+
+        const index = targetUser.followers.indexOf(currentUser.id);
+        
+        if (index === -1) {
+            targetUser.followers.push(currentUser.id);
+            me.following.push(targetId);
+        } else {
+            targetUser.followers.splice(index, 1);
+            me.following = me.following.filter(id => id !== targetId);
+        }
+        saveData();
+        renderProfile(targetId);
+    }
+
+    // Init
+    goHome();
+</script>
+
+</body>
+</html>
