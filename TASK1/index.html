@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Pollution Checker</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        input { padding: 10px; width: 60%; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        
+        .status-box { margin-top: 20px; padding: 15px; font-size: 1.2em; font-weight: bold; text-align: center; color: white; border-radius: 5px;}
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Check Air Pollution</h2>
+    <input type="text" id="cityInput" placeholder="Enter city name (e.g., Karachi)">
+    <button onclick="getPollutionData()">Check</button>
+
+    <div id="resultArea" class="hidden">
+        <div id="qualityStatus" class="status-box"></div>
+
+        <h3>Pollutant Concentration (μg/m³)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>SO2</th>
+                    <th>NO2</th>
+                    <th>PM10</th>
+                    <th>PM2.5</th>
+                    <th>O3</th>
+                    <th>CO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="val_so2">-</td>
+                    <td id="val_no2">-</td>
+                    <td id="val_pm10">-</td>
+                    <td id="val_pm2_5">-</td>
+                    <td id="val_o3">-</td>
+                    <td id="val_co">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_KEY = 'e7d7c119f7088bb6ef0e22262eb65638'; 
+
+    async function getPollutionData() {
+        const city = document.getElementById('cityInput').value;
+        if(!city) return alert("Please enter a city name");
+
+        try {
+            const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${API_KEY}`);
+            const geoData = await geoRes.json();
+
+            if (geoData.length === 0) throw new Error("City not found");
+
+            const { lat, lon } = geoData[0];
+
+            const pollRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`);
+            const pollData = await pollRes.json();
+
+            displayData(pollData);
+
+        } catch (error) {
+            console.error(error);
+            alert("Error: " + error.message);
+        }
+    }
+
+    function displayData(data) {
+        const resultDiv = document.getElementById('resultArea');
+        const statusBox = document.getElementById('qualityStatus');
+        
+        const aqi = data.list[0].main.aqi; 
+        const comp = data.list[0].components;
+
+        const mapping = {
+            1: { name: "Good", color: "#4caf50" },
+            2: { name: "Fair", color: "#8bc34a" },
+            3: { name: "Moderate", color: "#ffeb3b" },
+            4: { name: "Poor", color: "#ff9800" },
+            5: { name: "Very Poor", color: "#f44336" }
+        };
+
+        const result = mapping[aqi] || { name: "Unknown", color: "grey" };
+
+        statusBox.textContent = `Quality: ${result.name}`;
+        statusBox.style.backgroundColor = result.color;
+        statusBox.style.color = (aqi === 3) ? "black" : "white"; 
+
+        document.getElementById('val_so2').textContent = comp.so2;
+        document.getElementById('val_no2').textContent = comp.no2;
+        document.getElementById('val_pm10').textContent = comp.pm10;
+        document.getElementById('val_pm2_5').textContent = comp.pm2_5;
+        document.getElementById('val_o3').textContent = comp.o3;
+        document.getElementById('val_co').textContent = comp.co;
+
+        resultDiv.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
