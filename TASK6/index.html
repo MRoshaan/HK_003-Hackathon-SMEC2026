@@ -7,29 +7,22 @@
     <style>
         body { margin: 0; font-family: sans-serif; background: #202124; color: white; height: 100vh; display: flex; flex-direction: column; }
         
-        /* Main Layout */
         .main-container { flex: 1; display: flex; overflow: hidden; position: relative; }
-        
-        /* Video Grid */
         .video-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 20px; }
         .video-card { background: #3c4043; border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         .video-card video { width: 100%; height: 100%; object-fit: cover; }
         .name-tag { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; font-size: 12px; }
-
-        /* Whiteboard (Hidden by default) */
         #whiteboard-container { display: none; background: white; flex: 1; border-left: 1px solid #555; position: relative; cursor: crosshair; }
         canvas { display: block; width: 100%; height: 100%; }
         .wb-controls { position: absolute; top: 10px; left: 10px; background: #eee; padding: 5px; border-radius: 5px; display: flex; gap: 5px; }
         .color-btn { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ccc; cursor: pointer; }
 
-        /* Bottom Control Bar */
         .controls { height: 70px; background: #202124; border-top: 1px solid #3c4043; display: flex; align-items: center; justify-content: center; gap: 15px; }
         .btn { background: #3c4043; border: none; border-radius: 50%; width: 50px; height: 50px; color: white; cursor: pointer; font-size: 1.2em; transition: 0.3s; display: flex; align-items: center; justify-content: center; }
         .btn:hover { background: #505559; }
         .btn.active { background: #8ab4f8; color: #202124; }
         .btn.danger { background: #ea4335; }
-        
-        /* File Input hidden */
+       
         #fileInput { display: none; }
     </style>
 </head>
@@ -73,7 +66,6 @@
     </div>
 
 <script>
-    // 1. VIDEO CALLING LOGIC
     async function startVideo() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -84,28 +76,22 @@
         }
     }
 
-    // 2. SCREEN SHARING LOGIC
     async function shareScreen() {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            // For demo, we just replace our own video feed with screen share
             document.getElementById('myVideo').srcObject = stream;
             
-            // Revert back when user stops sharing
             stream.getVideoTracks()[0].onended = () => startVideo();
         } catch (err) {
             console.log("Screen share cancelled");
         }
     }
 
-    // 3. FILE SHARING LOGIC
     function handleFile(input) {
         if(input.files.length > 0) {
             alert(`File "${input.files[0].name}" uploaded and shared with peers!`);
         }
     }
-
-    // 4. WHITEBOARD LOGIC
     const wbContainer = document.getElementById('whiteboard-container');
     const canvas = document.getElementById('wbCanvas');
     const ctx = canvas.getContext('2d');
@@ -123,14 +109,12 @@
         if (isHidden) {
             wbContainer.style.display = 'block';
             document.getElementById('wbBtn').classList.add('active');
-            resizeCanvas(); // Fix size when showing
+            resizeCanvas();
         } else {
             wbContainer.style.display = 'none';
             document.getElementById('wbBtn').classList.remove('active');
         }
     }
-
-    // Drawing Events
     function startPosition(e) {
         painting = true;
         draw(e);
@@ -152,8 +136,6 @@
         ctx.beginPath();
         ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
     }
-
-    // Listeners
     canvas.addEventListener('mousedown', startPosition);
     canvas.addEventListener('mouseup', endPosition);
     canvas.addEventListener('mousemove', draw);
@@ -161,8 +143,6 @@
 
     function setColor(color) { currentColor = color; }
     function clearBoard() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-    // Init
     startVideo();
 </script>
 

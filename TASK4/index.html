@@ -10,15 +10,12 @@
         
         .container { display: flex; gap: 20px; }
         
-        /* Product List Styling */
         .product-list { flex: 2; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
         .card img { width: 100px; height: 100px; object-fit: contain; margin: 0 auto; }
         .price { color: #28a745; font-weight: bold; font-size: 1.1em; margin: 10px 0; }
         button.add-btn { background: #007bff; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer; }
         button.add-btn:hover { background: #0056b3; }
-
-        /* Cart Styling */
         .cart-section { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: fit-content; }
         .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
         .cart-controls button { width: 25px; height: 25px; cursor: pointer; border: 1px solid #ddd; background: #f8f8f8; }
@@ -46,24 +43,19 @@
     </div>
 
 <script>
-    // 1. STATE MANAGEMENT
     let cart = JSON.parse(localStorage.getItem('mySmartCart')) || [];
     let products = [];
 
-    // 2. FETCH PRODUCTS (API)
     async function fetchProducts() {
         try {
             const res = await fetch('https://dummyjson.com/products?limit=8');
             const data = await res.json();
             products = data.products;
             renderProducts();
-            renderCart(); // Load saved cart on refresh
-        } catch (err) {
+            renderCart();
             console.error(err);
         }
     }
-
-    // 3. RENDER PRODUCTS
     function renderProducts() {
         const container = document.getElementById('products');
         container.innerHTML = products.map(p => `
@@ -75,8 +67,6 @@
             </div>
         `).join('');
     }
-
-    // 4. CART LOGIC
     function addToCart(id) {
         const product = products.find(p => p.id === id);
         const existingItem = cart.find(item => item.id === id);
@@ -107,14 +97,10 @@
         cart = [];
         updateCart();
     }
-
-    // 5. UPDATE & PERSISTENCE (Session/DB Requirement)
     function updateCart() {
-        // Save to LocalStorage (This fulfills "Cart Persistence")
         localStorage.setItem('mySmartCart', JSON.stringify(cart));
         renderCart();
     }
-
     function renderCart() {
         const container = document.getElementById('cartItems');
         const totalSpan = document.getElementById('cartTotal');
@@ -145,7 +131,6 @@
         }).join('');
         totalSpan.innerText = total.toFixed(2);
     }
-    // Init
     fetchProducts();
 </script>
 
