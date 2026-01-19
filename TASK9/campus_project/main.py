@@ -15,9 +15,11 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
+
 # Mount the static folder to serve HTML files
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# You might also need a route for the home page to serve index.html
+from fastapi.responses import FileResponse
 # --- Dependency ---
 def get_db():
     db = database.SessionLocal()
